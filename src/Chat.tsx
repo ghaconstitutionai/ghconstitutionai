@@ -118,11 +118,11 @@ function MessageBubble({ message }: { message: Message }) {
                     {/* Sources */}
                     {!isUser && (
                         <div className="mt-2">
-                            {message.sources && message.sources.filter(s => s.similarity > 0.5).length > 0 ? (
+                            {message.sources && message.sources.filter(s => s.similarity > 0.3).length > 0 ? (
                                 <div className="space-y-2">
                                     <p className="text-xs text-[#737373] font-medium mb-1">📚 Constitutional References:</p>
                                     {message.sources
-                                        .filter(s => s.similarity > 0.5)
+                                        .filter(s => s.similarity > 0.3)
                                         .map((source, index) => (
                                             <SourceCard key={index} source={source} />
                                         ))}
@@ -168,7 +168,8 @@ function MessageList({ messages, loading, sending }: { messages: Message[]; load
                     <Bot size={32} className="text-[#4ade80]" />
                 </div>
                 <h2 className="text-xl font-semibold text-[#e5e5e5] mb-2">Welcome to {config.name} Legal AI</h2>
-                <p className="text-[#a3a3a3] max-w-md">Ask me anything about {config.constitution}. I'll provide accurate answers with specific Article references.</p>
+                <p className="text-[#a3a3a3] max-w-md">Ask me anything about {config.constitution}. I'll provide answers with specific Article references.
+                    <br /> I'm an AI Assistant and can make mistakes. Please consult a licensed professional for legal advice.</p>
             </div>
         )
     }
