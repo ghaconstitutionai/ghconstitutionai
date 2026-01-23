@@ -1,20 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Redirecting...</title>
-  <script>
-    // Store the path and redirect to home
-    var path = window.location.pathname;
-    var repo = '/ghconstitutionai';
-    if (path.startsWith(repo)) {
-      var route = path.slice(repo.length) || '/';
-      sessionStorage.setItem('redirect', route + window.location.search);
-    }
-    window.location.href = repo + '/';
-  </script>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        var repo = '/ghconstitutionai';
+        var path = window.location.pathname;
+        var route = '/';
+
+        if (path.startsWith(repo)) {
+            route = path.slice(repo.length) || '/';
+        } else if (path !== '/') {
+            route = path;
+        }
+
+        sessionStorage.setItem('redirect', route + window.location.search + window.location.hash);
+        window.location.replace(repo + '/');
+    </script>
 </head>
 <body>
-  Redirecting...
+    Redirecting...
 </body>
 </html>
