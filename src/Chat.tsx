@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -25,6 +25,65 @@ import { useAuth, useSessionTimeout, useConversations, useChat, Button, Modal, L
 import type { Message, Source } from './App'
 
 // ============================================
+// LEGAL TEXT FORMATTER - NEW!
+// ============================================
+function formatLegalContent(content: string): string {
+    let formatted = content;
+
+    // Avoid double-processing already bolded text
+    // First, protect existing bold markers
+    const boldPattern = /\*\*([^*]+)\*\*/g;
+    const protectedBolds: string[] = [];
+    formatted = formatted.replace(boldPattern, (match) => {
+        protectedBolds.push(match);
+        return `__PROTECTED_${protectedBolds.length - 1}__`;
+    });
+
+    // Bold Article references: "Article 1", "Article 21(1)(a)", "Articles 12 and 13"
+    formatted = formatted.replace(
+        /\b(Articles?\s+\d+(?:\s*\(\d+\))*(?:\s*\([a-z]\))*(?:\s*(?:and|,)\s*\d+(?:\s*\(\d+\))*(?:\s*\([a-z]\))*)*)/gi,
+        '**$1**'
+    );
+
+    // Bold Chapter references
+    formatted = formatted.replace(
+        /\b(Chapters?\s+\d+(?:\s*(?:and|,)\s*\d+)*)/gi,
+        '**$1**'
+    );
+
+    // Bold Section references
+    formatted = formatted.replace(
+        /\b(Sections?\s+\d+(?:\s*\(\d+\))*(?:\s*\([a-z]\))*)/gi,
+        '**$1**'
+    );
+
+    // Bold Clause references
+    formatted = formatted.replace(
+        /\b(Clauses?\s+\d+(?:\s*\(\d+\))*(?:\s*\([a-z]\))*)/gi,
+        '**$1**'
+    );
+
+    // Bold Part references
+    formatted = formatted.replace(
+        /\b(Parts?\s+[IVXLCDM]+|\bParts?\s+\d+)/gi,
+        '**$1**'
+    );
+
+    // Bold "The Constitution" references
+    formatted = formatted.replace(
+        /\b(the\s+1992\s+Constitution|the\s+Constitution\s+of\s+Ghana|Ghana'?s?\s+Constitution)/gi,
+        '**$1**'
+    );
+
+    // Restore protected bolds
+    protectedBolds.forEach((bold, index) => {
+        formatted = formatted.replace(`__PROTECTED_${index}__`, bold);
+    });
+
+    return formatted;
+}
+
+// ============================================
 // SOURCE CARD
 // ============================================
 function SourceCard({ source }: { source: Source }) {
@@ -33,18 +92,19 @@ function SourceCard({ source }: { source: Source }) {
     return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg overflow-hidden">
             <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#2a2a2a] transition-colors">
-                <div className="flex items-center space-x-2 text-left">
+                <div className="flex items-center space-x-2 text-left min-w-0">
                     <FileText size={14} className="text-[#4ade80] flex-shrink-0" />
-                    <div>
+                    <div className="min-w-0">
                         <span className="text-sm text-[#e5e5e5] font-medium">Article {source.article_number}</span>
-                        <span className="text-xs text-[#a3a3a3] ml-2">Chapter {source.chapter_number}: {source.chapter_title}</span>
+                        <span className="text-xs text-[#a3a3a3] ml-2 hidden sm:inline">Chapter {source.chapter_number}: {source.chapter_title}</span>
                     </div>
                 </div>
-                {expanded ? <ChevronUp size={16} className="text-[#a3a3a3]" /> : <ChevronDown size={16} className="text-[#a3a3a3]" />}
+                {expanded ? <ChevronUp size={16} className="text-[#a3a3a3] flex-shrink-0" /> : <ChevronDown size={16} className="text-[#a3a3a3] flex-shrink-0" />}
             </button>
             {expanded && (
                 <div className="px-3 py-2 border-t border-[#333] bg-[#0f0f0f]">
-                    <p className="text-sm text-[#a3a3a3] whitespace-pre-wrap">{source.article_text}</p>
+                    <p className="text-xs text-[#737373] mb-1 sm:hidden">Chapter {source.chapter_number}: {source.chapter_title}</p>
+                    <p className="text-sm text-[#a3a3a3] whitespace-pre-wrap leading-relaxed">{source.article_text}</p>
                     <div className="mt-2">
                         <span className="text-xs text-[#4ade80]">{Math.round(source.similarity * 100)}% match</span>
                     </div>
@@ -55,48 +115,68 @@ function SourceCard({ source }: { source: Source }) {
 }
 
 // ============================================
-// MESSAGE BUBBLE
+// MESSAGE BUBBLE - UPDATED FOR WIDER MOBILE
 // ============================================
 function MessageBubble({ message }: { message: Message }) {
     const isUser = message.role === 'user'
 
+    // Format AI content with legal term highlighting
+    const formattedContent = isUser ? message.content : formatLegalContent(message.content);
+
     return (
         <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-            <div className={cn('flex max-w-[85%] md:max-w-[75%]', isUser ? 'flex-row-reverse' : 'flex-row')}>
-                {/* Avatar */}
-                <div className={cn('flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center', isUser ? 'bg-primary ml-3' : 'bg-[#2a2a2a] mr-3')}>
-                    {isUser ? <User size={16} className="text-white" /> : <Bot size={16} className="text-[#4ade80]" />}
+            {/* CHANGED: Wider on mobile - 95% on mobile, 90% on sm, 80% on md+ */}
+            <div className={cn(
+                'flex max-w-[95%] sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%]',
+                isUser ? 'flex-row-reverse' : 'flex-row'
+            )}>
+                {/* Avatar - smaller on mobile */}
+                <div className={cn(
+                    'flex-shrink-0 rounded-full flex items-center justify-center',
+                    'w-6 h-6 sm:w-8 sm:h-8', // Smaller on mobile
+                    isUser ? 'bg-primary ml-2 sm:ml-3' : 'bg-[#2a2a2a] mr-2 sm:mr-3'
+                )}>
+                    {isUser ?
+                        <User size={14} className="text-white sm:w-4 sm:h-4" /> :
+                        <Bot size={14} className="text-[#4ade80] sm:w-4 sm:h-4" />
+                    }
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-col">
-                    <div className={cn('px-4 py-3 rounded-2xl', isUser ? 'bg-primary text-white rounded-tr-sm' : 'bg-[#0d0d0d] text-[#e5e5e5] rounded-tl-sm')}>
+                <div className="flex flex-col min-w-0 flex-1">
+                    {/* CHANGED: Less padding on mobile */}
+                    <div className={cn(
+                        'rounded-2xl',
+                        'px-3 py-2 sm:px-4 sm:py-3', // Reduced padding on mobile
+                        isUser
+                            ? 'bg-primary text-white rounded-tr-sm'
+                            : 'bg-[#0d0d0d] text-[#e5e5e5] rounded-tl-sm border border-[#1a1a1a]'
+                    )}>
                         {isUser ? (
-                            <p className="whitespace-pre-wrap">{message.content}</p>
+                            <p className="whitespace-pre-wrap text-[14px] sm:text-[15px] leading-relaxed">{message.content}</p>
                         ) : (
-                            <div className="prose prose-invert max-w-none
-                                prose-p:text-[#d4d4d4] prose-p:text-[15px] prose-p:leading-[1.7] prose-p:my-3
-                                prose-headings:text-[#f5f5f5] prose-headings:font-semibold
-                                prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3 prose-h1:first:mt-0
-                                prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2 prose-h2:first:mt-0
-                                prose-h3:text-base prose-h3:mt-4 prose-h3:mb-2 prose-h3:first:mt-0
-                                prose-ul:my-3 prose-ul:pl-5
-                                prose-ol:my-3 prose-ol:pl-5
-                                prose-li:text-[#d4d4d4] prose-li:my-1.5 prose-li:text-[15px] prose-li:leading-[1.7]
-                                prose-li:marker:text-[#737373]
+                            <div className="prose prose-invert prose-sm sm:prose-base max-w-none
+                                prose-p:text-[#d4d4d4] prose-p:text-[14px] sm:prose-p:text-[15px] prose-p:leading-[1.75] prose-p:my-2 sm:prose-p:my-3
+                                prose-headings:text-[#4ade80] prose-headings:font-semibold prose-headings:border-b prose-headings:border-[#333] prose-headings:pb-1
+                                prose-h1:text-lg sm:prose-h1:text-xl prose-h1:mt-4 sm:prose-h1:mt-6 prose-h1:mb-2 sm:prose-h1:mb-3 prose-h1:first:mt-0
+                                prose-h2:text-base sm:prose-h2:text-lg prose-h2:mt-4 sm:prose-h2:mt-5 prose-h2:mb-2 prose-h2:first:mt-0 prose-h2:text-[#f5f5f5]
+                                prose-h3:text-sm sm:prose-h3:text-base prose-h3:mt-3 sm:prose-h3:mt-4 prose-h3:mb-2 prose-h3:first:mt-0 prose-h3:text-[#e5e5e5] prose-h3:border-none
+                                prose-ul:my-2 sm:prose-ul:my-3 prose-ul:pl-4 sm:prose-ul:pl-5
+                                prose-ol:my-2 sm:prose-ol:my-3 prose-ol:pl-4 sm:prose-ol:pl-5
+                                prose-li:text-[#d4d4d4] prose-li:my-1 sm:prose-li:my-1.5 prose-li:text-[14px] sm:prose-li:text-[15px] prose-li:leading-[1.7]
+                                prose-li:marker:text-[#4ade80]
                                 prose-strong:text-[#f5f5f5] prose-strong:font-semibold
-                                prose-code:text-[#f87171] prose-code:bg-[#262626] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none
-                                prose-pre:bg-[#1a1a1a] prose-pre:border prose-pre:border-[#333] prose-pre:rounded-lg prose-pre:p-4 prose-pre:my-4 prose-pre:overflow-x-auto
-                                prose-blockquote:border-l-2 prose-blockquote:border-[#525252] prose-blockquote:pl-4 prose-blockquote:py-0.5 prose-blockquote:my-4 prose-blockquote:text-[#a3a3a3] prose-blockquote:italic prose-blockquote:not-italic prose-blockquote:font-normal
+                                prose-em:text-[#a3a3a3] prose-em:italic
+                                prose-code:text-[#f87171] prose-code:bg-[#262626] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[12px] sm:prose-code:text-[13px] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none
+                                prose-pre:bg-[#1a1a1a] prose-pre:border prose-pre:border-[#333] prose-pre:rounded-lg prose-pre:p-3 sm:prose-pre:p-4 prose-pre:my-3 sm:prose-pre:my-4 prose-pre:overflow-x-auto prose-pre:text-[13px]
+                                prose-blockquote:border-l-3 prose-blockquote:border-[#4ade80] prose-blockquote:bg-[#1a1a1a] prose-blockquote:pl-3 sm:prose-blockquote:pl-4 prose-blockquote:pr-3 prose-blockquote:py-2 prose-blockquote:my-3 sm:prose-blockquote:my-4 prose-blockquote:rounded-r-lg prose-blockquote:text-[#c4c4c4] prose-blockquote:not-italic prose-blockquote:font-normal prose-blockquote:text-[13px] sm:prose-blockquote:text-[14px]
                                 prose-a:text-[#60a5fa] prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-[#93c5fd]
-                                prose-table:my-4 prose-table:w-full prose-table:text-sm
-                                prose-th:bg-[#1f1f1f] prose-th:text-[#e5e5e5] prose-th:font-medium prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-[#333]
-                                prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-[#333] prose-td:text-[#d4d4d4]
-                                prose-hr:border-[#333] prose-hr:my-6
+                                prose-hr:border-[#333] prose-hr:my-4 sm:prose-hr:my-6
                             ">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
+                                        // Custom link component
                                         a: ({ href, children }) => (
                                             <a
                                                 href={href}
@@ -106,16 +186,28 @@ function MessageBubble({ message }: { message: Message }) {
                                             >
                                                 {children}
                                             </a>
-                                        )
+                                        ),
+                                        // Better blockquote styling
+                                        blockquote: ({ children }) => (
+                                            <blockquote className="border-l-3 border-[#4ade80] bg-[#1a1a1a]/50 pl-4 pr-3 py-2 my-3 rounded-r-lg text-[#c4c4c4] italic">
+                                                {children}
+                                            </blockquote>
+                                        ),
+                                        // Custom strong for legal terms
+                                        strong: ({ children }) => (
+                                            <strong className="text-[#4ade80] font-semibold">
+                                                {children}
+                                            </strong>
+                                        ),
                                     }}
                                 >
-                                    {message.content}
+                                    {formattedContent}
                                 </ReactMarkdown>
                             </div>
                         )}
                     </div>
 
-                    {/* Sources */}
+                    {/* Sources - UPDATED: Better mobile layout */}
                     {!isUser && (
                         <div className="mt-2">
                             {message.sources && message.sources.filter(s => s.similarity > 0.3).length > 0 ? (
@@ -123,18 +215,19 @@ function MessageBubble({ message }: { message: Message }) {
                                     <p className="text-xs text-[#737373] font-medium mb-1">📚 Constitutional References:</p>
                                     {message.sources
                                         .filter(s => s.similarity > 0.3)
+                                     //   .slice(0, 3) // Limit to 3 on mobile for cleaner look
                                         .map((source, index) => (
                                             <SourceCard key={index} source={source} />
                                         ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-[#737373] italic">No constitutional sources found for this response</p>
+                                <p className="text-xs text-[#737373] italic">ℹ️ General response - no specific articles cited</p>
                             )}
                         </div>
                     )}
 
                     {/* Time */}
-                    <span className={cn('text-xs text-[#a3a3a3] mt-1', isUser ? 'text-right' : 'text-left')}>
+                    <span className={cn('text-[10px] sm:text-xs text-[#a3a3a3] mt-1', isUser ? 'text-right' : 'text-left')}>
                         {formatTime(message.created_at)}
                     </span>
                 </div>
@@ -144,7 +237,7 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 // ============================================
-// MESSAGE LIST
+// MESSAGE LIST - UPDATED: Better mobile padding
 // ============================================
 function MessageList({ messages, loading, sending }: { messages: Message[]; loading: boolean; sending: boolean }) {
     const bottomRef = useRef<HTMLDivElement>(null)
@@ -175,16 +268,17 @@ function MessageList({ messages, loading, sending }: { messages: Message[]; load
     }
 
     return (
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+        // CHANGED: Less horizontal padding on mobile
+        <div className="flex-1 overflow-y-auto px-2 sm:px-4 py-4 sm:py-6">
+            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
                 {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} />
                 ))}
 
                 {sending && (
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-                            <Bot size={16} className="text-[#4ade80]" />
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
+                            <Bot size={14} className="text-[#4ade80]" />
                         </div>
                         <div className="bg-[#2a2a2a] px-4 py-3 rounded-2xl rounded-tl-sm">
                             <div className="flex space-x-1">
@@ -201,6 +295,7 @@ function MessageList({ messages, loading, sending }: { messages: Message[]; load
         </div>
     )
 }
+
 
 // ============================================
 // CHAT INPUT
@@ -311,7 +406,7 @@ function DisclaimerModal({ isOpen, onAccept }: { isOpen: boolean; onAccept: () =
                         <li>This tool provides <strong className="text-[#e5e5e5]">educational information only</strong></li>
                         <li>It does <strong className="text-[#e5e5e5]">not constitute legal advice</strong></li>
                         <li>Always consult a qualified legal professional for legal matters</li>
-                        <li>AI responses may occasionally contain errors</li>
+                        <li>AI responses may sometimes contain errors</li>
                     </ul>
                     <p>By continuing, you acknowledge that you understand these limitations.</p>
                 </div>
@@ -661,92 +756,96 @@ export default function Chat() {
                 />
             )}
 
-            {/* Sidebar - FIXED: Changed transition-transform to transition-all, and md:-translate-x-full to md:-ml-72 */}
-            <div
+            {/* Sidebar */}
+            <aside
                 className={cn(
-                    'fixed md:relative z-40 h-full bg-[#1a1a1a] border-r border-[#333] transition-all duration-300 ease-in-out flex flex-col',
-                    'w-72',
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full md:-ml-72'
+                    'h-full bg-[#1a1a1a] border-r border-[#333] flex flex-col transition-all duration-300 ease-in-out overflow-hidden',
+                    'fixed md:static z-40',
+                    sidebarOpen 
+                        ? 'w-72' 
+                        : 'w-0 md:w-0'
                 )}
             >
-                {/* Sidebar Header */}
-                <div className="p-4 border-b border-[#333] flex items-center justify-between flex-shrink-0">
-                    <h1 className="text-lg font-bold" style={{ color: config.colors.accent }}>
-                        {config.name} Legal AI
-                    </h1>
-                    <button
-                        onClick={toggleSidebar}
-                        className="p-1.5 rounded-lg text-[#a3a3a3] hover:text-[#e5e5e5] hover:bg-[#2a2a2a] transition-colors"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
+                <div className="w-72 h-full flex flex-col">
+                    {/* Sidebar Header */}
+                    <div className="p-4 border-b border-[#333] flex items-center justify-between flex-shrink-0">
+                        <h1 className="text-lg font-bold" style={{ color: config.colors.accent }}>
+                            {config.name} Legal AI
+                        </h1>
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-1.5 rounded-lg text-[#a3a3a3] hover:text-[#e5e5e5] hover:bg-[#2a2a2a] transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
 
-                {/* New chat button */}
-                <div className="p-3 flex-shrink-0">
-                    <button
-                        onClick={handleNewChat}
-                        className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg border border-[#333] text-[#e5e5e5] hover:bg-[#2a2a2a] transition-colors"
-                    >
-                        <Plus size={18} />
-                        <span>New Chat</span>
-                    </button>
-                </div>
+                    {/* New chat button */}
+                    <div className="p-3 flex-shrink-0">
+                        <button
+                            onClick={handleNewChat}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg border border-[#333] text-[#e5e5e5] hover:bg-[#2a2a2a] transition-colors"
+                        >
+                            <Plus size={18} />
+                            <span>New Chat</span>
+                        </button>
+                    </div>
 
-                {/* Conversations list */}
-                <div className="flex-1 overflow-y-auto px-3 pb-3">
-                    {conversations.length === 0 ? (
-                        <p className="text-[#a3a3a3] text-sm text-center py-8">No conversations yet</p>
-                    ) : (
-                        <div className="space-y-1">
-                            {conversations.map((conv) => (
-                                <div
-                                    key={conv.id}
-                                    className={cn(
-                                        'group flex items-center rounded-lg cursor-pointer transition-colors',
-                                        currentConversationId === conv.id
-                                            ? 'bg-[#2a2a2a] text-[#e5e5e5]'
-                                            : 'text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#e5e5e5]'
-                                    )}
-                                >
-                                    <button
-                                        onClick={() => handleSelectConversation(conv.id)}
-                                        className="flex-1 flex items-center space-x-3 px-3 py-2.5 min-w-0"
+                    {/* Conversations list */}
+                    <div className="flex-1 overflow-y-auto px-3 pb-3">
+                        {conversations.length === 0 ? (
+                            <p className="text-[#a3a3a3] text-sm text-center py-8">No conversations yet</p>
+                        ) : (
+                            <div className="space-y-1">
+                                {conversations.map((conv) => (
+                                    <div
+                                        key={conv.id}
+                                        className={cn(
+                                            'group flex items-center rounded-lg cursor-pointer transition-colors',
+                                            currentConversationId === conv.id
+                                                ? 'bg-[#2a2a2a] text-[#e5e5e5]'
+                                                : 'text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#e5e5e5]'
+                                        )}
                                     >
-                                        <MessageSquare size={16} className="flex-shrink-0" />
-                                        <span className="truncate text-sm">{truncate(conv.title, 25)}</span>
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id) }}
-                                        className="p-2 opacity-0 group-hover:opacity-100 text-[#a3a3a3] hover:text-[#ce1126] transition-all"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                        <button
+                                            onClick={() => handleSelectConversation(conv.id)}
+                                            className="flex-1 flex items-center space-x-3 px-3 py-2.5 min-w-0"
+                                        >
+                                            <MessageSquare size={16} className="flex-shrink-0" />
+                                            <span className="truncate text-sm">{truncate(conv.title, 25)}</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id) }}
+                                            className="p-2 opacity-0 group-hover:opacity-100 text-[#a3a3a3] hover:text-[#ce1126] transition-all"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                {/* Bottom buttons */}
-                <div className="p-3 border-t border-[#333] space-y-2 flex-shrink-0">
-                    <button
-                        onClick={() => setShowFeedback(true)}
-                        className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#4ade80] transition-colors"
-                    >
-                        <MessageSquare size={18} />
-                        <span>Send Feedback</span>
-                    </button>
+                    {/* Bottom buttons */}
+                    <div className="p-3 border-t border-[#333] space-y-2 flex-shrink-0">
+                        <button
+                            onClick={() => setShowFeedback(true)}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#4ade80] transition-colors"
+                        >
+                            <MessageSquare size={18} />
+                            <span>Send Feedback</span>
+                        </button>
 
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#ce1126] transition-colors"
-                    >
-                        <LogOut size={18} />
-                        <span>Sign Out</span>
-                    </button>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#a3a3a3] hover:bg-[#2a2a2a] hover:text-[#ce1126] transition-colors"
+                        >
+                            <LogOut size={18} />
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </aside>
 
             {/* Main area */}
             <div className="flex-1 flex flex-col min-w-0">
@@ -783,7 +882,9 @@ export default function Chat() {
                                     <Bot size={32} className="text-[#4ade80]" />
                                 </div>
                                 <h2 className="text-xl font-semibold text-[#e5e5e5] mb-2">Welcome to {config.name} Legal AI</h2>
-                                <p className="text-[#a3a3a3] max-w-md mb-6">Ask me anything about {config.constitution}. I'll provide accurate answers with specific Article references.</p>
+                                <p className="text-[#a3a3a3] max-w-md mb-6">Ask me anything about {config.constitution}. <br /> I'll provide answers with specific Article references. 
+                                <br /> I'm an AI Assistant and I can make mistakes. Please consult a licensed professional for legal advice.
+                                </p>
                             </div>
 
                             {/* Quick Questions */}

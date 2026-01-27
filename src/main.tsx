@@ -4,10 +4,13 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
+// Automatically detect environment
+const basename = import.meta.env.PROD ? '/ghconstitutionai' : '/'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-        <BrowserRouter basename="/ghconstitutionai">
-            <App />
-        </BrowserRouter>
-    </React.StrictMode>
+  <React.StrictMode>
+    <BrowserRouter basename={basename}>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
 )

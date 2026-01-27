@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ArrowRight, Scale, MessageSquare, Search, BookOpen, Clock, Shield, Smartphone, Zap } from 'lucide-react'
 import { useAuth, Button, Input, LoadingSpinner, config, cn } from './App'
@@ -16,7 +16,7 @@ function Navbar() {
                 <div className="flex justify-between items-center h-16">
                     <Link to="/" className="flex items-center space-x-2">
                         <span className="text-xl font-bold" style={{ color: config.colors.primary }}>
-                            {config.name} Legal AI
+                            Alora Legal AI
                         </span>
                     </Link>
 
