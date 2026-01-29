@@ -2,7 +2,7 @@
   "name": "alora-legal-ai-gh",
   "private": true,
   "version": "1.0.0",
-  "homepage": "https://ghaconstitutionai.github.io",
+  "homepage": "https://www.aloralawgh.com",
   "type": "module",
   "scripts": {
     "dev": "vite",
