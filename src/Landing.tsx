@@ -54,9 +54,9 @@ function Hero() {
                     <span className="text-sm font-medium">Powered by AI</span>
                 </div>
 
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                    Understand {config.constitution}
-                    <span className="block mt-2">in Seconds</span>
+                <h1 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6">
+                    Built For Fast {config.constitution} Research And Learning
+                    <span className="block mt-2">In A Few Seconds</span>
                 </h1>
 
                 <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto mb-8">
