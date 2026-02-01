@@ -1,22 +1,48 @@
-﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const SYSTEM_PROMPT = `You are Ghana Legal AI, an expert assistant specializing in Ghana's 1992 Constitution.
+const SYSTEM_PROMPT = `You are Ghana Legal AI, an expert assistant specializing in Ghana's 1992 Constitution and Ghanaian law.
 
 Your role:
-- Answer questions about Ghana's Constitution accurately
-- Cite specific Articles, Chapters, and Sections when relevant
+- Answer questions about Ghana's Constitution and laws accurately
+- Cite specific Articles, Chapters and Sections when relevant
 - Explain legal concepts in simple, clear language
 
+FORMATTING RULES (IMPORTANT):
+- Use ## for main headings
+- Use # for sub-headings
+- Use bullet points (-) for lists
+- Use numbered lists (1. 2. 3.) for steps or procedures
+- Add blank lines between sections for readability
+- Use **bold** for important terms
+- Use > for quoting legal provisions
+- Keep paragraphs short (2-3 sentences max)
+
+Example format:
+## Main Topic
+
+# Sub-section 1
+Brief explanation here.
+
+**Key Points:**
+- First point
+- Second point
+
+# Sub-section 2
+Another explanation.
+
+> "Quoted legal text here" - Article X
+
 Guidelines:
-- Always reference the Constitution when applicable
+- Always reference the Constitution and Acts when applicable
 - If unsure, say so rather than making up information
-- Keep answers focused and concise
+- Structure long answers with clear headings
 
 BASIC FACTS:
 - The Constitution has 26 Chapters and 299 Articles
@@ -25,7 +51,7 @@ BASIC FACTS:
 
 ABOUT YOU:
 - Created by Joel, a young Ghanaian AI enthusiast
-- Powered by Ghana Legal AI`
+- Powered by Alora AI`
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -39,18 +65,15 @@ serve(async (req) => {
             throw new Error('conversation_id and message are required')
         }
 
-        // Get auth header
         const authHeader = req.headers.get('Authorization')
         if (!authHeader) {
             throw new Error('Authorization required')
         }
 
-        // Create Supabase clients
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // Step 1: Get embedding for the query
         const embeddingResponse = await fetch('https://openrouter.ai/api/v1/embeddings', {
             method: 'POST',
             headers: {
@@ -70,7 +93,6 @@ serve(async (req) => {
         const embeddingData = await embeddingResponse.json()
         const embedding = embeddingData.data[0].embedding
 
-        // Step 2: Search for relevant constitution articles
         const { data: sources, error: searchError } = await supabase.rpc(
             'search_constitution',
             {
@@ -84,7 +106,6 @@ serve(async (req) => {
             console.error('Search error:', searchError)
         }
 
-        // Step 3: Build context from sources
         let context = ''
         if (sources && sources.length > 0) {
             context = '\n\nRelevant Constitutional Provisions:\n'
@@ -93,7 +114,6 @@ serve(async (req) => {
             })
         }
 
-        // Step 4: Get chat history
         const { data: history } = await supabase
             .from('messages')
             .select('role, content')
@@ -101,22 +121,18 @@ serve(async (req) => {
             .order('created_at', { ascending: true })
             .limit(10)
 
-        // Build messages array
         const messages = [
             { role: 'system', content: SYSTEM_PROMPT + context },
         ]
 
-        // Add history
         if (history) {
             history.forEach((msg: any) => {
                 messages.push({ role: msg.role, content: msg.content })
             })
         }
 
-        // Add current message
         messages.push({ role: 'user', content: message })
 
-        // Step 5: Call Groq for AI response
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -139,7 +155,6 @@ serve(async (req) => {
         const groqData = await groqResponse.json()
         const aiResponse = groqData.choices[0].message.content
 
-        // Step 6: Save messages to database
         const now = new Date().toISOString()
 
         const { data: userMsg } = await supabase
@@ -165,7 +180,6 @@ serve(async (req) => {
             .select('id')
             .single()
 
-        // Update conversation updated_at
         await supabase
             .from('conversations')
             .update({ updated_at: now })
