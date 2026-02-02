@@ -4,8 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
-// Automatically detect environment
-const basename = import.meta.env.PROD ? '/ghconstitutionai' : '/'
+// Use Vite's BASE_URL so production builds work on both subfolder and root domains
+const rawBase = import.meta.env.BASE_URL || '/'
+const basename = rawBase === '/' ? '/' : rawBase.replace(/\/$/, '')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
