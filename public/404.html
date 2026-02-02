@@ -4,18 +4,12 @@
     <meta charset="utf-8">
     <title>Redirecting...</title>
     <script>
-        var repo = '/';
-        var path = window.location.pathname;
-        var route = '/';
-
-        if (path.startsWith(repo)) {
-            route = path.slice(repo.length) || '/';
-        } else if (path !== '/') {
-            route = path;
-        }
-
-        sessionStorage.setItem('redirect', route + window.location.search + window.location.hash);
-        window.location.replace(repo + '/');
+        (function () {
+            // Save requested route then navigate to root so index.html can restore it
+            var route = window.location.pathname + window.location.search + window.location.hash;
+            sessionStorage.setItem('redirect', route);
+            window.location.replace('/');
+        })();
     </script>
 </head>
 <body>
