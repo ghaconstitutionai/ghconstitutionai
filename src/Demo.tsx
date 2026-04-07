@@ -223,7 +223,7 @@ function DemoDisclaimer({ onAccept }: { onAccept: () => void }) {
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-1">
                     <li>For <strong className="text-[#e5e5e5]">educational purposes only</strong></li>
-                    <li>Does <strong className="text-[#e5e5e5]">not constitute legal advice</strong></li>
+                  <li>Does <strong className="text-[#e5e5e5]">not constitute legal advice</strong></li>
                     <li>You get <strong className="text-[#4ade80]">5 free questions</strong> to try</li>
                     <li>Sign up free to get unlimited access</li>
                 </ul>
