@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, createContext, useContext, ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, forwardRef } from 'react'
+import { useState, useEffect, useRef, useCallback, createContext, useContext, ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, forwardRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { createClient, User, Session } from '@supabase/supabase-js'
 import { X } from 'lucide-react'
@@ -541,3 +541,4 @@ export default function App() {
         </AuthProvider>
     )
 }
+

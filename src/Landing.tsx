@@ -2,42 +2,52 @@ import { useState, useEffect, FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ArrowRight, Scale, MessageSquare, Search, BookOpen, Clock, Shield, Smartphone, Zap } from 'lucide-react'
 import { useAuth, Button, Input, LoadingSpinner, config, cn } from './App'
-
+import DemoChatModal, { 
+    DEMO_STORAGE_KEY, 
+    DEMO_DISCLAIMER_KEY,
+    saveDemoMessagesToDB 
+} from './Demo'
+import type { DemoMessage } from './Demo'
 
 // ============================================
 // NAVBAR
 // ============================================
 function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
+    const [showDemo, setShowDemo] = useState(false)
 
     return (
-        <nav className="bg-white shadow-sm sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
-                    <Link to="/" className="flex items-center space-x-2">
-                        <span className="text-xl font-bold" style={{ color: config.colors.primary }}>
-                            Alora Legal AI
-                        </span>
-                    </Link>
+        <>
+            <DemoChatModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
 
-                    <div className="hidden md:flex items-center space-x-4">
-                        <Link to="/login" className="text-gray-600 hover:text-gray-900 px-3 py-2">Sign in</Link>
-                        <Link to="/signup"><Button>Get Started</Button></Link>
+            <nav className="bg-white shadow-sm sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <Link to="/" className="flex items-center space-x-2">
+                            <span className="text-xl font-bold" style={{ color: config.colors.primary }}>
+                                Alora Legal AI
+                            </span>
+                        </Link>
+
+                        <div className="hidden md:flex items-center space-x-4">
+                            <Link to="/login" className="text-gray-600 hover:text-gray-900 px-3 py-2">Sign in</Link>
+                            <Button onClick={() => setShowDemo(true)}>Get Started</Button>
+                        </div>
+
+                        <button className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100" onClick={() => setIsOpen(!isOpen)}>
+                            {isOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
                     </div>
-
-                    <button className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100" onClick={() => setIsOpen(!isOpen)}>
-                        {isOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
                 </div>
-            </div>
 
-            <div className={cn('md:hidden border-t border-gray-100 bg-white', isOpen ? 'block' : 'hidden')}>
-                <div className="px-4 py-4 space-y-3">
-                    <Link to="/login" className="block text-gray-600 hover:text-gray-900 py-2" onClick={() => setIsOpen(false)}>Sign in</Link>
-                    <Link to="/signup" onClick={() => setIsOpen(false)}><Button className="w-full">Get Started</Button></Link>
+                <div className={cn('md:hidden border-t border-gray-100 bg-white', isOpen ? 'block' : 'hidden')}>
+                    <div className="px-4 py-4 space-y-3">
+                        <Link to="/login" className="block text-gray-600 hover:text-gray-900 py-2" onClick={() => setIsOpen(false)}>Sign in</Link>
+                        <Button className="w-full" onClick={() => { setIsOpen(false); setShowDemo(true) }}>Get Started</Button>
+                    </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </>
     )
 }
 
@@ -45,42 +55,52 @@ function Navbar() {
 // HERO
 // ============================================
 function Hero() {
+    const [showDemo, setShowDemo] = useState(false)
+
     return (
-        <section className="relative min-h-[80vh] flex items-center justify-center text-white" style={{ background: config.gradient }}>
-            <div className="absolute inset-0 bg-black/20" />
-            <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
-                    <Scale size={18} />
-                    <span className="text-sm font-medium">Powered by AI</span>
-                </div>
+        <>
+            <DemoChatModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
 
-                <h1 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6">
-                    Built For Fast {config.constitution} Research And Learning
-                    <span className="block mt-2">In A Few Seconds</span>
-                </h1>
+            <section className="relative min-h-[80vh] flex items-center justify-center text-white" style={{ background: config.gradient }}>
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
+                        <Scale size={18} />
+                        <span className="text-sm font-medium">Powered by AI</span>
+                    </div>
 
-                <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto mb-8">
-                    Ask questions in plain English and get accurate answers with direct references to specific Articles and Chapters. No legal jargon required.
-                </p>
+                    <h1 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6">
+                        Built For Fast {config.constitution} Research And Learning
+                        <span className="block mt-2">In A Few Seconds</span>
+                    </h1>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <Link to="/signup">
-                        <Button size="lg" className="bg-yellow text-primary hover:bg-gray-100 w-full sm:w-auto">
+                    <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto mb-8">
+                        Ask questions in plain English and get accurate answers with direct references to specific Articles and Chapters. No legal jargon required.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <button
+                            onClick={() => setShowDemo(true)}
+                            className="inline-flex items-center justify-center font-medium rounded-lg
+                                bg-white text-primary hover:bg-gray-100 px-6 py-3 text-lg
+                                transition-colors w-full sm:w-auto"
+                        >
                             Start for Free <ArrowRight size={20} className="ml-2" />
-                        </Button>
-                    </Link>
-                    <Link to="/login">
-                        <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto">
-                            <MessageSquare size={20} className="mr-2" /> Sign In
-                        </Button>
-                    </Link>
-                </div>
+                        </button>
 
-                <p className="mt-8 text-sm text-white/70">
-                    ✓ Free to use &nbsp; ✓ No credit card required &nbsp; ✓ Instant answers
-                </p>
-            </div>
-        </section>
+                        <Link to="/login">
+                            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto">
+                                <MessageSquare size={20} className="mr-2" /> Sign In
+                            </Button>
+                        </Link>
+                    </div>
+
+                    <p className="mt-8 text-sm text-white/70">
+                        ✓ Free to use &nbsp; ✓ No credit card required &nbsp; ✓ Instant answers
+                    </p>
+                </div>
+            </section>
+        </>
     )
 }
 
@@ -245,6 +265,7 @@ function AuthForm({ type }: { type: 'login' | 'signup' | 'reset' }) {
                 if (data.user && !data.session) {
                     setSuccess('Check your email to confirm your account!')
                 } else {
+                    await saveDemoMessagesToDB(data.user.id, data.session.access_token)
                     navigate('/chat')
                 }
             } else {
@@ -412,6 +433,7 @@ export default function Landing({ page }: { page: 'home' | 'login' | 'signup' | 
             </div>
         )
     }
+
 
     if (page === 'home') return <HomePage />
     if (page === 'login') return <AuthForm type="login" />
