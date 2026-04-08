@@ -2,13 +2,8 @@ import { useState, useEffect, FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ArrowRight, Scale, MessageSquare, Search, BookOpen, Clock, Shield, Smartphone, Zap } from 'lucide-react'
 import { useAuth, Button, Input, LoadingSpinner, config, cn } from './App'
-import DemoChatModal, { 
-    DEMO_STORAGE_KEY, 
-    DEMO_DISCLAIMER_KEY,
-    saveDemoMessagesToDB 
-} from './Demo'
-import type { DemoMessage } from './Demo'
 
+import DemoChatModal, { saveDemoMessagesToDB } from './Demo'
 // ============================================
 // NAVBAR
 // ============================================
